@@ -1,11 +1,7 @@
 #!/usr/bin/bash
 
 # k3sの下準備
-curl -sfL https://get.k3s.io | sh -
-mkdir .kube
-sudo cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
-sudo chown kurihara:kurihara ~/.kube/config #各自変更
-KUBECONFIG=~/.kube/config
+curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
 
 # Cluster内のServiceを取得
 services=$(kubectl get services --all-namespaces --selector="app=<your-app-selector>" --output=jsonpath='{.items[*].metadata.name}')
