@@ -13,7 +13,7 @@ fi
 # directory生成
 mkdir nginx_proxy
 # directoryのアナウンス
-echo "---\"nginx_proxy\"directoryを生成しました．---"
+echo "\"nginx_proxy\"directoryを生成しました．"
 
 # configmap生成
 echo "apiVersion: v1
@@ -28,21 +28,15 @@ data:
 
 path_counter=1
 for service in $services; do
-  if [ "$service" == "nginx-proxy-service" ]; then
+  if [ "$service" == "nginx-proxy-service" ] || [ "$service" == "kube-dns" ] || [ "$service" == "metrics-server" ] || [ "$service" == "traefik" ]; then
+    continue
+  fi
+  # Serviceのポート情報を取得
+  service_port=$(kubectl get svc $service --output=jsonpath='{.spec.ports[0].port}')
+  if [ -z "$service" ] || [ -z "$service_port" ] || [ "$service_port" == "443" ]; then
     continue
   fi
   path="/service$path_counter"
-  # Serviceのポート情報を取得
-  service_port=$(kubectl get svc $service --output=jsonpath='{.spec.ports[0].port}')
-
-  if [ -z "$service" ] || [ -z "$service_port" ]; then
-    continue
-  fi
-
-  if [ "$service_port" == "443" ]; then
-    continue
-  fi
-
   # Service名とポートを正しく設定
   proxy_pass="proxy_pass http://$service.default.svc.cluster.local:$service_port/;"
   echo "      location $path {
@@ -110,35 +104,23 @@ spec:
 " > ~/nginx_proxy/nginx-service.yaml
 
 # マニフェスト生成完了のアナウンス
-echo "---ConfigMap, Deployment, Serviceマニフェストを生成しました．---"
+echo "ConfigMap, Deployment, Serviceマニフェストを生成しました．"
 
 # マニフェストをapply, apply完了のアナウンス
 kubectl apply -f ~/nginx_proxy/nginx-configmap.yaml
 kubectl apply -f ~/nginx_proxy/nginx-deployment.yaml
 kubectl apply -f ~/nginx_proxy/nginx-service.yaml
-echo "---マニフェストをapplyしました．---"
+echo "マニフェストをapplyしました．"
 
-# 外部からのアクセスURLとプロキシ先のサービス名を表示
-# for service in $services; do
-#   external_ip=$(kubectl get svc nginx-service --output=jsonpath='{.status.loadBalancer.ingress[0].ip}')
-#   port=$(kubectl get svc nginx-service --output=jsonpath='{.spec.ports[0].port}')
-#   echo "外部からのアクセスURL for $service: http://$external_ip:$port"
-#   echo "プロキシ先のサービス名 for $service: nginx-service"
-# done
+# URL表示
 path_counter=1
 for service in $services; do
-  if [ "$service" == "nginx-proxy-service" ]; then
+  if [ "$service" == "nginx-proxy-service" ] || [ "$service" == "kube-dns" ] || [ "$service" == "metrics-server" ] || [ "$service" == "traefik" ]; then
     continue
   fi
-  path="/service$path_counter"
   # Serviceのポート情報を取得
   service_port=$(kubectl get svc $service --output=jsonpath='{.spec.ports[0].port}')
-
-  if [ -z "$service" ] || [ -z "$service_port" ]; then
-    continue
-  fi
-
-  if [ "$service_port" == "443" ]; then
+  if [ -z "$service" ] || [ -z "$service_port" ] || [ "$service_port" == "443" ]; then
     continue
   fi
   external_ip=$(kubectl get svc nginx-service --output=jsonpath='{.status.loadBalancer.ingress[0].ip}')
