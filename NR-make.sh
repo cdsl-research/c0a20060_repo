@@ -48,9 +48,9 @@ for service in $services; do
 
   path="/service$path_counter"
   # Service名とポートを正しく設定
-  proxy_pass="proxy_pass http://$service.default.svc.cluster.local:$service_port/;"
+  proxy_pass="http://$service.default.svc.cluster.local:$service_port/;"
   echo "      location $path {
-        $proxy_pass
+        proxy_pass $proxy_pass
       }" >> ~/nginx_proxy/nginx-configmap.yaml
   ((path_counter++))
 done
